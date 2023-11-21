@@ -20,5 +20,5 @@ from . import hello
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('main/', hello.hello)
+    path('main/', hello.hello, name='main')
 ]
