@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 env: 
-  secret_key = ${{secrets.SECRET_KEY}}
+  SECRET_KEY: ${{secrets.SECRET_KEY}}
 
 jobs:
   build:
