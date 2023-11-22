@@ -27,8 +27,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 defile = os.path.join(BASE_DIR, ".env")
 if os.path.isfile(defile):
     dotenv.load_dotenv(defile)
-
-SECRET_KEY = os.environ['SECRET_KEY']
+    SECRET_KEY = os.environ['SECRET_KEY']
+else: 
+    SECRET_KEY = os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
