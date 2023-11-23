@@ -38,6 +38,7 @@ def index(request):
     return render(request, "index.html", context)
 
 def getRxNorm(query_str):
+    query_str = query_str.split(", ")
     content = requests.get(f'https://rxnav.nlm.nih.gov/REST/drugs.json?name={query_str}').json()
     cui_name = []
     for i in content['drugGroup']['conceptGroup']:
