@@ -134,3 +134,4 @@ import django_heroku
 django_heroku.settings(locals())
 
 CSRF_COOKIE_SECURE = True
+CSRF_TRUSTED_ORIGINS = ['https://mjpan-fp507-2d393f67a958.herokuapp.com']
