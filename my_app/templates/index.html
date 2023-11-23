@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 
 {% for g in greetings %}
-    <li>{{g}}</li>
+<li>{{g}}</li>
 {% endfor %}
 
 <h5>{{ only_one }}</h5>
+
+<form method='post'>
+    {% csrf_token %}
+    {{form.as_p}}
+    <input type="submit" value="Send">
+</form>
