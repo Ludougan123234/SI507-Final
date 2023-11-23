@@ -48,7 +48,7 @@ class Graph:
         # edge
         edge = Edge(self.vert_list[f], self.vert_list[t], source, severity, additional_info)
         self.vert_list[f].add_neighbor(self.vert_list[t], edge)
-        # If the graph is undirected, you might also want to add the reverse edge:
+        # construct undirected graph
         reverse_edge = Edge(self.vert_list[t], self.vert_list[f], source, severity, additional_info)
         self.vert_list[t].add_neighbor(self.vert_list[f], reverse_edge)
 
