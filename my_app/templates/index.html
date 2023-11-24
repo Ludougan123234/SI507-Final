@@ -9,6 +9,11 @@
 
 <h1 style="color:red;">This project is still under work. This form will not return anything or trigger any actions as of now</h1>
 
+{% for data in cached %}
+<li>{{ data }}</li> 
+{% endfor %}
+
+
 <form method='post'>
     {% csrf_token %}
     {{form.as_p}}

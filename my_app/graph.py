@@ -1,5 +1,5 @@
 """Definition for graph, edge, and vertex"""
-
+from collections import deque
 class Edge:
     def __init__(self, src, dest, source, severity, additional_info):
         self.src = src # source
@@ -52,9 +52,27 @@ class Graph:
         reverse_edge = Edge(self.vert_list[t], self.vert_list[f], source, severity, additional_info)
         self.vert_list[t].add_neighbor(self.vert_list[f], reverse_edge)
 
-"""
-graph = Graph()
+def bfs(graph, start, end):
+    visited = set()
+    # use deque to hold start vertex and distance 
+    queue = deque([(start, 0)])
 
+    while queue:
+        current_id, distance = queue.popleft()
+        if current_id == end:
+            return distance
+
+        if current_id not in visited:
+            visited.add(current_id)
+            current = graph.vert_list[current_id]
+            for neighbor in current.connectedTo:
+                if neighbor.id not in visited:
+                    queue.append((neighbor.id, distance + 1))
+
+    return None # no paths found
+"""
+Exampel usage: 
+graph = Graph()
 
 for i in content['fullInteractionTypeGroup']:
     for j in i['fullInteractionType']:
@@ -69,4 +87,5 @@ for i in content['fullInteractionTypeGroup']:
         )
 
 print(graph.vert_list["207106"])
+print(bfs(graph, "828555", "209387"))
 """

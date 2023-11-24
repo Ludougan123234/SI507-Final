@@ -5,6 +5,8 @@ from django.template import loader
 from django.views.decorators.csrf import ensure_csrf_cookie
 from .forms import DrugForm
 from .graph import Graph
+import json 
+import os
 
 @ensure_csrf_cookie
 def index(request):
@@ -31,17 +33,28 @@ def index(request):
     else: 
         form = DrugForm()
 
+    f = open('./my_app/cache.json')
 
+    data = json.load(f)
+
+    cached = []
+    for i in data['cache']:
+        cached.append(i)
+
+    # print(os.getcwd())
 
     context = {"greetings": greeting_list, 
                "only_one": greeting_list[1], 
-               'form': form}
+               'form': form,
+               'cached': cached}
+    
     return render(request, "index.html", context)
 
 def getRxNorm(query_str):
     query_str = [i.strip() for i in query_str.split(',')]
     cui_name = {}
     for q in query_str:
+        # TODO: Use cache
         content = requests.get(f'https://rxnav.nlm.nih.gov/REST/drugs.json?name={q}').json()
         for i in content['drugGroup']['conceptGroup']:
             try: 
@@ -78,6 +91,7 @@ def getInteractionData(cui):
 def buildGraph(interaction):
     pass
     ...
+
 
 
 # references:
