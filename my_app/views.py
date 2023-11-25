@@ -30,39 +30,50 @@ def index(request):
             # use functions 
             cui_name_pair = getRxNorm(drug)
 
+            context = {"greetings": greeting_list, 
+               "only_one": greeting_list[1], 
+               'form': form,
+               'cached': cui_name_pair}
+
+            return render(request, "index.html", context)
+
     else: 
         form = DrugForm()
 
-    f = open('./my_app/cache.json')
-
-    data = json.load(f)
-
-    cached = []
-    for i in data['cache']:
-        cached.append(i)
-
-    # print(os.getcwd())
-
     context = {"greetings": greeting_list, 
                "only_one": greeting_list[1], 
-               'form': form,
-               'cached': cached}
+               'form': form}
     
     return render(request, "index.html", context)
 
 def getRxNorm(query_str):
-    query_str = [i.strip() for i in query_str.split(',')]
-    cui_name = {}
+    query_str = [i.strip().lower() for i in query_str.split(',')]
+    cui_name = {}  # dictionary to store cui to drug_name mapping
+    with open("./my_app/cache.json", 'r') as json_file:
+        cache = json.load(json_file)
+    
     for q in query_str:
-        # TODO: Use cache
-        content = requests.get(f'https://rxnav.nlm.nih.gov/REST/drugs.json?name={q}').json()
-        for i in content['drugGroup']['conceptGroup']:
-            try: 
-                for j in i['conceptProperties']:
-                    # cui_name.append([j['rxcui'], j['name']])
-                    cui_name[j['rxcui']] = j['name']
+        if q in cache.keys(): 
+            print("data found in cache")
+            cui_name.update(cache[q])  # update cui_name with cached data
+        else: 
+            print("Fetching new data")
+            response = requests.get(f'https://rxnav.nlm.nih.gov/REST/drugs.json?name={q}').json()
+            new_data = {}  # temporary dictionary to store new API data
+            try:
+                for i in response['drugGroup']['conceptGroup']:
+                    if 'conceptProperties' in i:
+                        for j in i['conceptProperties']:
+                            new_data[j['rxcui']] = j['name']
+                cache[q] = new_data  # update cache with new data for q
+                cui_name.update(new_data)  # update cui_name with new API data
             except KeyError:
                 pass
+
+    # Update the cache file only once after processing all queries
+    with open("./my_app/cache.json", "w") as f:
+        json.dump(cache, f)
+
     return cui_name
 
 def getOpenFda(cui, sex, age_onset, hospitalization, report_date, reporting_country, reaction_type):

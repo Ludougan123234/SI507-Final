@@ -9,9 +9,9 @@
 
 <h1 style="color:red;">This project is still under work. This form will not return anything or trigger any actions as of now</h1>
 
-{% for data in cached %}
+{% comment %} {% for data in cached %}
 <li>{{ data }}</li> 
-{% endfor %}
+{% endfor %} {% endcomment %}
 
 
 <form method='post'>
@@ -21,9 +21,11 @@
 </form>
 
 
+<div> {{ cached }} </div>
 
-<span>
+
+{% comment %} <span>
 Limitations: 
 1. This applicaation does not store user data, so any progress will be lost once the page is refreshed.
 2. 
-</span> 
+</span>  {% endcomment %}
