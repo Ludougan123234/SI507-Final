@@ -145,7 +145,7 @@ def buildGraphVisualization(interaction):
         pty.pop()  # pop first and last (the nodes)
         return ptx, pty, pth
 
-    def create_networkx_graph(drug_graph):
+    def nxGraph(drug_graph):
         G = nx.Graph()
         for vertex in drug_graph.vert_list.values():
             G.add_node(vertex.id)
@@ -171,8 +171,8 @@ def buildGraphVisualization(interaction):
                 j["interactionPair"][0]["description"],
             )
 
-    # Convert your graph to a NetworkX graph
-    G = create_networkx_graph(graph)
+    # Convert graph to a NetworkX graph
+    G = nxGraph(graph)
 
     # Generate positions for each node using NetworkX
     pos = nx.spring_layout(G)
