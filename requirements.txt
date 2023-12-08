@@ -5,10 +5,15 @@ dj-database-url==2.1.0
 Django==4.2.7
 django-heroku==0.3.1
 idna==3.4
+networkx==3.2.1
+numpy==1.26.2
+packaging==23.2
+plotly==5.18.0
 psycopg2==2.9.9
 python-dotenv==1.0.0
 requests==2.31.0
 sqlparse==0.4.4
+tenacity==8.2.3
 typing_extensions==4.8.0
 urllib3==2.1.0
 whitenoise==6.6.0

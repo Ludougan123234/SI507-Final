@@ -5,7 +5,10 @@ from django.template import loader
 from django.views.decorators.csrf import ensure_csrf_cookie
 from .forms import DrugForm
 from .graph import Graph
+import plotly.graph_objects as go
+import networkx as nx
 import json 
+import random
 import os
 
 @ensure_csrf_cookie
@@ -29,11 +32,13 @@ def index(request):
             print(drug, age_onset)
             # use functions 
             cui_name_pair = getRxNorm(drug)
+            interaction = getInteractionData(list(cui_name_pair.keys()))
 
-            context = {"greetings": greeting_list, 
-               "only_one": greeting_list[1], 
+            context = {
                'form': form,
-               'cached': cui_name_pair}
+               'cached': cui_name_pair,
+               'graph': buildGraphVisualization(interaction),
+               }
 
             return render(request, "index.html", context)
 
@@ -93,15 +98,109 @@ def getOpenFda(cui, sex, age_onset, hospitalization, report_date, reporting_coun
         results['reaction_type'] = ...
     return results
 
-def getInteractionData(cui):
-    pass
-    # NOTE: cui should be list, joined by "+"
-    # NOTE: should only search for list
+def getInteractionData(cui_list):
+    max_len = 50 if len(cui_list) >= 50 else len(cui_list)
+    cui_list = random.choices(cui_list, k=max_len)
+    cui_str = '+'.join(cui_list)
+    content = requests.get(f'https://rxnav.nlm.nih.gov/REST/interaction/list.json?rxcuis={cui_str}').json()
+    return content
 
 
-def buildGraph(interaction):
-    pass
-    # NOTE: User graph.py
+def buildGraphVisualization(interaction):
+    # Function to create a NetworkX graph from your graph structure
+    def create_networkx_graph(drug_graph):
+        G = nx.Graph()
+        for vertex in drug_graph.vert_list.values():
+            G.add_node(vertex.id)
+            for neighbor in vertex.connectedTo:
+                G.add_edge(vertex.id, neighbor.id)
+        return G
+    
+    graph = Graph()
+    for i in interaction['fullInteractionTypeGroup']:
+        for j in i['fullInteractionType']:
+            graph.add_edge(
+                j['minConcept'][0]['rxcui'],
+                j['minConcept'][0]['name'],
+                j['minConcept'][1]['rxcui'],
+                j['minConcept'][1]['name'],
+                i['sourceName'],
+                j['interactionPair'][0]['severity'],
+                j['interactionPair'][0]['description']
+            )
+
+
+    # Convert your graph to a NetworkX graph
+    G = create_networkx_graph(graph)
+
+    # Generate positions for each node using NetworkX
+    pos = nx.spring_layout(G)
+
+    # Extracting edge coordinates from the positions
+    edge_x = []
+    edge_y = []
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])  # Add None to create a break between lines
+        edge_y.extend([y0, y1, None])
+
+    # Create a trace for edges
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=0.5, color='#888'),
+        hoverinfo='none',
+        mode='lines')
+
+    # Extracting node coordinates and labels
+    node_x = []
+    node_y = []
+    node_text = []
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        node_text.append(node)
+
+    # Create a trace for nodes
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers',
+        hoverinfo='text',
+        text=node_text,
+        marker=dict(
+            showscale=False,
+            color='blue',
+            size=10,
+            line_width=2))
+
+    n_adjacencies = []
+    n_text = []
+
+    for node, adjacencies in enumerate(G.adjacency()):
+        n_adjacencies.append(len(adjacencies[1]))
+        n_text.append('# of connections: '+str(len(adjacencies[1])))
+
+    node_trace.marker.color = n_adjacencies
+    node_trace.text = n_text
+
+    # Create a Plotly figure
+    fig = go.Figure(data=[edge_trace, node_trace],
+                layout=go.Layout(
+                    title='<br>Drug interactions graph',
+                    titlefont_size=16,
+                    showlegend=False,
+                    hovermode='closest',
+                    margin=dict(b=20,l=5,r=5,t=40),
+                    annotations=[ dict(
+                        text="Drug network graph",
+                        showarrow=False,
+                        xref="paper", yref="paper",
+                        x=0.005, y=-0.002 ) ],
+                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)))
+
+    return fig.to_html()
 
 
 
