@@ -12,7 +12,7 @@ The file structure of the repository is listed below:
 |:-----:  |:-----:  |:-----:  |
 | `.github/workflow` | ✅ | Workflow file for github action (for automatic deployment to heroku) |
 |`mjpan507`  | ✅ |  Django configuration |
-| `my_app` | ✅ | Project code (contains: application view, logic, and graph) |
+| `my_app` | ✅ | Project code (contains: application view, logic, and graph) <br><strong style="color:red"> If you are grading this assignment, please look at this directory </strong> |
 | `.gitignore` | ❌ |  Git ignore file |
 | `README.md` | ❌ | Readme file |
 | `manage.py`|❌ | Django configuration file |
