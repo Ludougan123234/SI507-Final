@@ -25,12 +25,15 @@ app.layout = html.Div([
         dcc.Input(id='query', type='text'),
         html.Button('Submit', id='submit-btn', n_clicks=0),
         html.Div(id = 'hidden-div', style={"display":"none"}),
-        html.Div(dcc.Dropdown(["1","2","3"], "1", id='dd')),
-        html.Div(id='dd-test', style={"height":"20px", "width":"100px"}),
-        html.Div(dcc.Graph(id="drug-network")),
-        # html.Div(
-        #     dcc.Graph(id='drill-down')
-        # ),
+        html.Div(dcc.Dropdown(["Patient Sex",
+                               "2",
+                               "3"], "Patient Sex", id='dd')),
+        # html.Div(id='dd-test', style={"height":"20px", "width":"100px"}),
+        html.Div([
+            html.Div(dcc.Graph(id="drug-network"), style={"width":"49%"}),
+            html.Div(dcc.Graph(id='drill-down'), style={"width":"49%"})
+        ], style={"display":"flex", "flex-direction":"row", "justify-content":"space-between"})
+        ,
     ], id="graph-container")
 
 @ensure_csrf_cookie
@@ -69,13 +72,30 @@ def index(request):
         prevent_initial_call=True,
 )
 def update_graph(n_clicks, query, text):
-    """n is drilldown selection"""
+    """draws the drug interaction graph"""
     if n_clicks >= 1:
         print(f"query string is: {text}")
         cui_name_pair = getRxNorm(text)
         interaction = getInteractionData(list(cui_name_pair.keys()))   
         return buildGraphVisualization(interaction)
     return dash.no_update
+
+
+@app.callback(
+    Output('drill-down', 'figure'),
+    Input("drug-network", "clickData"),
+    Input("dd", "value")
+)
+def update_drilldown(click_data, dropdown):
+    """updates the drilldown graph"""
+    try: 
+        cui_clicked = click_data['points'][0]['text'].split("<br>")[0].split(": ")[1]
+    except KeyError: 
+        # when the user clicks on the edge scatter points
+        pass 
+    print(cui_clicked)
+    if dropdown == "Patient Sex":
+        return go.Figure(data=go.Bar(y=[2, 3, 1]))
 
 
 
@@ -270,7 +290,8 @@ def buildGraphVisualization(interaction):
     for node, adjacencies in enumerate(G.adjacency()):
         n_adjacencies.append(len(adjacencies[1]))
         n_text.append(
-            f"RxCUI: {adjacencies[0]}<br>"
+            f"RxCUI: {adjacencies[0]}<br>" + 
+            f"Drug name: {graph.vert_list[adjacencies[0]].name}<br>"
             + f"# of connections: {str(len(adjacencies[1]))}"
         )
 
