@@ -27,7 +27,7 @@ app.layout = html.Div([
         html.Div(id = 'hidden-div', style={"display":"none"}),
         html.Div(dcc.Dropdown(["1","2","3"], "1", id='dd')),
         html.Div(id='dd-test', style={"height":"20px", "width":"100px"}),
-        html.Div(dcc.Graph(id="drug-network"), style={'display': 'none'}),
+        html.Div(dcc.Graph(id="drug-network")),
         # html.Div(
         #     dcc.Graph(id='drill-down')
         # ),
@@ -63,15 +63,21 @@ def index(request):
 
 @app.callback(
         dash.dependencies.Output('drug-network', 'figure'),
-        dash.dependencies.Input('submit-btn', 'n_clicks'),
-        dash.dependencies.Input('dd', 'value'),
-        State('query', 'value'),
+        dash.dependencies.Input('submit-btn', 'n_clicks'), # click counter - n_clicks
+        dash.dependencies.Input('dd', 'value'), # dropdown value - query
+        State('query', 'value'), # query string - text
         prevent_initial_call=True,
 )
 def update_graph(n_clicks, query, text):
     """n is drilldown selection"""
     if n_clicks >= 1:
         print(f"query string is: {text}")
+        cui_name_pair = getRxNorm(text)
+        interaction = getInteractionData(list(cui_name_pair.keys()))   
+        return buildGraphVisualization(interaction)
+    return dash.no_update
+
+
 
 def getRxNorm(query_str):
     query_str = [i.strip().lower() for i in query_str.split(",")]
