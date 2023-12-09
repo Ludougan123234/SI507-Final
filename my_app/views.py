@@ -10,7 +10,7 @@ import networkx as nx
 from collections import deque
 import json
 import dash
-from dash import Dash, dcc, html
+from dash import Dash, dcc, html, State
 from django_plotly_dash import DjangoDash
 import random
 from dash.dependencies import Input, Output
@@ -21,12 +21,17 @@ import os
 
 app = DjangoDash("drug-interaction")
 app.layout = html.Div([
-    html.Div('Dash application'),
-    html.Div(id = 'hidden-div', style={"display":"none"}),
-    html.Div(dcc.Dropdown([1,2,3], 1, id='dropdown')),
-    html.Div(id='drug-network', style={"height":"700px"})
-    ],
-    id="graph-container")
+        html.Div('Dash application'),
+        dcc.Input(id='query', type='text'),
+        html.Button('Submit', id='submit-btn', n_clicks=0),
+        html.Div(id = 'hidden-div', style={"display":"none"}),
+        html.Div(dcc.Dropdown(["1","2","3"], "1", id='dd')),
+        html.Div(id='dd-test', style={"height":"20px", "width":"100px"}),
+        html.Div(dcc.Graph(id="drug-network"), style={'display': 'none'}),
+        # html.Div(
+        #     dcc.Graph(id='drill-down')
+        # ),
+    ], id="graph-container")
 
 @ensure_csrf_cookie
 def index(request):
@@ -42,12 +47,13 @@ def index(request):
             # use functions
             cui_name_pair = getRxNorm(form.cleaned_data["drug"])
             interaction = getInteractionData(list(cui_name_pair.keys()))
-            assembleVisual(buildGraphVisualization(interaction))
+            # assembleVisual(buildGraphVisualization(interaction))
             context = {
                 "form": form,
                 "cached": cui_name_pair,
                 'dash-data': json.dumps(form.cleaned_data),
                 "graph": buildGraphVisualization(interaction),
+                "interaction_data": json.dumps(interaction)
             }
             return render(request, "index.html", context)
     else:
@@ -55,7 +61,17 @@ def index(request):
     context = {"greetings": greeting_list, "only_one": greeting_list[1], "form": form}
     return render(request, "index.html", context)
 
-
+@app.callback(
+        dash.dependencies.Output('drug-network', 'figure'),
+        dash.dependencies.Input('submit-btn', 'n_clicks'),
+        dash.dependencies.Input('dd', 'value'),
+        State('query', 'value'),
+        prevent_initial_call=True,
+)
+def update_graph(n_clicks, query, text):
+    """n is drilldown selection"""
+    if n_clicks >= 1:
+        print(f"query string is: {text}")
 
 def getRxNorm(query_str):
     query_str = [i.strip().lower() for i in query_str.split(",")]
@@ -283,30 +299,20 @@ def buildGraphVisualization(interaction):
     return fig
 
 
-def assembleVisual(interaction_graph):
-    app = DjangoDash("drug-interaction")
+# def assembleVisual(interaction_graph):
+#     app_post = DjangoDash("drug-interaction")
 
-    app.layout = html.Div([
-        html.Div('Dash application'),
-        html.Div(id = 'hidden-div', style={"display":"none"}),
-        html.Div(dcc.Dropdown([1,2,3], 1, id='dropdown')),
-        html.Div(
-            dcc.Graph(figure=interaction_graph, 
-                      id="drug-network")),
-    ], id="graph-container")
-    
-
-@app.callback(
-        Output('drug-network', 'children'),
-        Input('hidden-div', 'children')
-)
-def update_graph(n):
-    print(n)
-    if n: 
-        print(f"{'='*10}{n}")
-        network_graph = buildGraphVisualization(n)
-        return dcc.Graph(figure=network_graph)
-    return dash.no_update
+#     app_post.layout = html.Div([
+#         html.Div('Dash application'),
+#         html.Div(dcc.Dropdown(["1","2","3"], "1", id='dd')),
+#         html.Div(id='dd-test', style={"height":"20px", "width":"100px"}),
+#         html.Div(
+#             dcc.Graph(figure=interaction_graph, 
+#                       id="drug-network")),
+#         # html.Div(
+#         #     dcc.Graph(id='drill-down')
+#         # ),
+#     ], id="graph-container")
 
 
 
