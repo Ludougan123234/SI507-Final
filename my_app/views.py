@@ -1,22 +1,22 @@
+import os
+import json
+import dash
+import flask
+import random
 import requests
+import networkx as nx
+from .graph import Graph
+from .forms import DrugForm
+from collections import deque
+import plotly.graph_objects as go
+import plotly.express as px
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.template import loader
-from django.views.decorators.csrf import ensure_csrf_cookie
-from .forms import DrugForm
-from .graph import Graph
-import plotly.graph_objects as go
-import networkx as nx
-from collections import deque
-import json
-import dash
 from dash import Dash, dcc, html, State
 from django_plotly_dash import DjangoDash
-import random
 from dash.dependencies import Input, Output
-import flask
-
-import os
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 app = DjangoDash("drug-interaction")
@@ -90,12 +90,16 @@ def update_drilldown(click_data, dropdown):
     """updates the drilldown graph"""
     try: 
         cui_clicked = click_data['points'][0]['text'].split("<br>")[0].split(": ")[1]
+        openFda = getOpenFda(cui_clicked)
     except KeyError: 
         # when the user clicks on the edge scatter points
-        pass 
+        pass
     print(cui_clicked)
     if dropdown == "Patient Sex":
-        return go.Figure(data=go.Bar(y=[2, 3, 1]))
+        plot_dict = openFda['sex']
+        return px.bar(x=plot_dict.keys(), y = plot_dict.values(), color=plot_dict.keys())
+    elif dropdown == "age_onset":
+        plot_dict = openFda['age_onset']
 
 
 
@@ -132,23 +136,21 @@ def getRxNorm(query_str):
     return cui_name
 
 
-def getOpenFda(
-    cui, sex, age_onset, hospitalization, report_date, reporting_country, reaction_type
-):
+def getOpenFda(cui):
+    BASE_URL = "https://api.fda.gov/drug/event.json?search=patient.drug.openfda.rxcui"
     results = {}
-    # TODO: parse data
-    if sex:
-        results["sex"] = ...
-    if age_onset:
-        results["age_onset"] = ...
-    if hospitalization:
-        results["hospitalization"] = ...
-    if report_date:
-        results["report_date"] = ...
-    if reporting_country:
-        results["reporting_country"] = ...
-    if reaction_type:
-        results["reaction_type"] = ...
+    # sex
+    # 0 unknown, 1 male, 2 female
+    content = requests.get(f'{BASE_URL}:%22{cui}%22&count=patient.patientsex').json()
+    sex_dict = {0: "unknown", 1: "male", 2: 'female'}
+    results["sex"] = {sex_dict[i['term']]: i['count'] for i in content['results']}
+
+    # 
+    results["age_onset"] = ...
+    results["hospitalization"] = ...
+    results["report_date"] = ...
+    results["reporting_country"] = ...
+    results["reaction_type"] = ...
     return results
 
 

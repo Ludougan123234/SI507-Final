@@ -2,28 +2,52 @@
 {%load plotly_dash%}
 {%load static%}
 <style> 
-    #graph-container{
-        width: 700px;
-        height: 700px; 
+    body {
+        margin: 0;
+        padding: 0;
     }
-    #graph-container-1{
-        width: 700px;
-        height: 700px; 
+    ul.header {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #333333;
+    }
+
+    ul.header li {
+        font-size: 24px; /* Example size, set as needed */
+        color: white;
+        line-height: 50px; /* Adjust line-height as needed */
+        float: left; /* Float left for default alignment */
+        padding: 0 10px; /* Adjust padding as needed */
+    }
+
+    ul.header li.right {
+        float: right; /* Only float right for specific items */
     }
 </style>
 
-<h1 style="color: red">
+<ul class='header'>
+    <li>
+        <a>Drug interaction graph</a>
+    </li>
+    <li class="right">
+        <a>Github</a>
+    </li>
+</ul>
+
+<h5 style="color: red; margin: 10px; padding: 10px">
   This project is still under work. This form will not return anything or
   trigger any actions as of now
-</h1>
+</h5>
 
 {% comment %} {% for data in cached %}
 <li>{{ data }}</li>
 {% endfor %} {% endcomment %}
-<form method="post">
+{% comment %} <form method="post">
   {% csrf_token %} {{form.as_p}}
   <input type="submit" value="Send" />
-</form>
+</form> {% endcomment %}
 {% comment %} <div>{{ cached }}</div> {% endcomment %}
 {% comment %} <div style="width: 700px; height: 700px">{{ graph|safe }}</div> {% endcomment %}
 {% plotly_app name="drug-interaction" ratio=0.5%}
