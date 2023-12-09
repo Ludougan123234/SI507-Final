@@ -1,25 +1,39 @@
 <!DOCTYPE html>
+{%load plotly_dash%}
+{%load static%}
+<style> 
+    #graph-container{
+        width: 700px;
+        height: 700px; 
+    }
+    #graph-container-1{
+        width: 700px;
+        height: 700px; 
+    }
+</style>
 
-<h1 style="color:red;">This project is still under work. This form will not return anything or trigger any actions as of now</h1>
+<h1 style="color: red">
+  This project is still under work. This form will not return anything or
+  trigger any actions as of now
+</h1>
 
 {% comment %} {% for data in cached %}
-<li>{{ data }}</li> 
+<li>{{ data }}</li>
 {% endfor %} {% endcomment %}
-
-
-<form method='post'>
-    {% csrf_token %}
-    {{form.as_p}}
-    <input type="submit" value="Send">
+<div id='interaction-data' style="display:none;">
+    {{ interaction_data|safe}}
+</div>
+<form method="post">
+  {% csrf_token %} {{form.as_p}}
+  <input type="submit" value="Send" />
 </form>
 
-
-<div> {{ cached }} </div>
-<div style="width: 700px; height: 700px"> {{ graph|safe }} </div>
-
-
-{% comment %} <span>
-Limitations: 
-1. This applicaation does not store user data, so any progress will be lost once the page is refreshed.
-2. 
-</span>  {% endcomment %}
+<div>{{ cached }}</div>
+{% comment %} <div style="width: 700px; height: 700px">{{ graph|safe }}</div> {% endcomment %}
+{%plotly_app name="drug-interaction" ratio=0.5%}
+{% comment %}
+<span>
+  Limitations: 1. This applicaation does not store user data, so any progress
+  will be lost once the page is refreshed. 2.
+</span>
+{% endcomment %}

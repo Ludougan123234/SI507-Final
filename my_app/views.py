@@ -9,9 +9,24 @@ import plotly.graph_objects as go
 import networkx as nx
 from collections import deque
 import json
+import dash
+from dash import Dash, dcc, html
+from django_plotly_dash import DjangoDash
 import random
+from dash.dependencies import Input, Output
+import flask
+
 import os
 
+
+app = DjangoDash("drug-interaction")
+app.layout = html.Div([
+    html.Div('Dash application'),
+    html.Div(id = 'hidden-div', style={"display":"none"}),
+    html.Div(dcc.Dropdown([1,2,3], 1, id='dropdown')),
+    html.Div(id='drug-network', style={"height":"700px"})
+    ],
+    id="graph-container")
 
 @ensure_csrf_cookie
 def index(request):
@@ -23,33 +38,23 @@ def index(request):
         if form.is_valid():
             # Process form data
             print("form is valid")
-            drug = form.cleaned_data["drug"]
-            sex = form.cleaned_data["sex"]
-            age_onset = form.cleaned_data["age_onset"]
-            hospitalization = form.cleaned_data["hospitalization"]
-            report_date = form.cleaned_data["report_date"]
-            reporting_country = form.cleaned_data["reporting_country"]
-            reaction_type = form.cleaned_data["reaction_type"]
-
-            print(drug, age_onset)
+            request.session['dash_data']  = form.cleaned_data
             # use functions
-            cui_name_pair = getRxNorm(drug)
+            cui_name_pair = getRxNorm(form.cleaned_data["drug"])
             interaction = getInteractionData(list(cui_name_pair.keys()))
-
+            assembleVisual(buildGraphVisualization(interaction))
             context = {
                 "form": form,
                 "cached": cui_name_pair,
+                'dash-data': json.dumps(form.cleaned_data),
                 "graph": buildGraphVisualization(interaction),
             }
-
             return render(request, "index.html", context)
-
     else:
         form = DrugForm()
-
     context = {"greetings": greeting_list, "only_one": greeting_list[1], "form": form}
-
     return render(request, "index.html", context)
+
 
 
 def getRxNorm(query_str):
@@ -272,7 +277,37 @@ def buildGraphVisualization(interaction):
     )
 
     fig.add_trace(edge_trace)
-    return fig.to_html()
+    fig.update_layout(clickmode="event+select")
+    fig.update_layout(height=700) 
+    fig.update_traces(marker_size=20)
+    return fig
+
+
+def assembleVisual(interaction_graph):
+    app = DjangoDash("drug-interaction")
+
+    app.layout = html.Div([
+        html.Div('Dash application'),
+        html.Div(id = 'hidden-div', style={"display":"none"}),
+        html.Div(dcc.Dropdown([1,2,3], 1, id='dropdown')),
+        html.Div(
+            dcc.Graph(figure=interaction_graph, 
+                      id="drug-network")),
+    ], id="graph-container")
+    
+
+@app.callback(
+        Output('drug-network', 'children'),
+        Input('hidden-div', 'children')
+)
+def update_graph(n):
+    print(n)
+    if n: 
+        print(f"{'='*10}{n}")
+        network_graph = buildGraphVisualization(n)
+        return dcc.Graph(figure=network_graph)
+    return dash.no_update
+
 
 
 # references:
