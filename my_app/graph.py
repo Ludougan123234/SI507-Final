@@ -16,8 +16,6 @@ class Vertex:
         self.id = value # RxNorm CUI
         # TODO: Name
         self.name = name
-        # TODO: User choices - implemented patient sex agg. only
-        # self.reaction_sex = reaction_sex
 
         self.connectedTo = {}  # Key: Vertex, Value: Edge
 

@@ -138,8 +138,6 @@ def update_drilldown(click_data, dropdown):
         )
         fig.update(layout_coloraxis_showscale=False)
         return fig
-    elif dropdown == "Reason for hospitalization":
-        pass
     elif dropdown == "Report nation":
         plot_data = (
             gpd.GeoDataFrame(openFda["reporting_country"])
@@ -153,10 +151,8 @@ def update_drilldown(click_data, dropdown):
             locations=plot_data.index,
             color="count",
         )
-        fig.update_layout(f'Reporting country distribution for {cui_clicked}')
+        fig.update_layout(title=f'Reporting country distribution for {cui_clicked}')
         return fig
-    elif dropdown == "Report date":
-        pass
     elif dropdown == "Reaction type":
         pass
 
