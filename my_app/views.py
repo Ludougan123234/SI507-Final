@@ -8,6 +8,7 @@ import networkx as nx
 from .graph import Graph
 from .forms import DrugForm
 from collections import deque
+import geopandas as gpd
 import plotly.graph_objects as go
 import plotly.express as px
 from django.http import HttpResponse
@@ -20,21 +21,40 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 app = DjangoDash("drug-interaction")
-app.layout = html.Div([
-        html.Div('Dash application'),
-        dcc.Input(id='query', type='text'),
-        html.Button('Submit', id='submit-btn', n_clicks=0),
-        html.Div(id = 'hidden-div', style={"display":"none"}),
-        html.Div(dcc.Dropdown(["Patient Sex",
-                               "2",
-                               "3"], "Patient Sex", id='dd')),
+shp_file = gpd.read_file("./my_app/World_Countries_Generalized.zip").drop(
+    ["SHAPE_Leng", "SHAPE_Area", "FID", "COUNTRYAFF"], axis=1
+)
+
+
+app.layout = html.Div(
+    [
+        html.Div("Dash application"),
+        dcc.Input(id="query", type="text"),
+        html.Div(id="status-div", style={"color": "blue", "height": "200px"}),
+        html.Div(
+            dcc.Dropdown(
+                ["Patient Sex", "Age of onset", "Report nation", "4", "5", "6"],
+                "Patient Sex",
+                id="dd",
+            )
+        ),
+        html.Button("Submit", id="submit-btn", n_clicks=0),
         # html.Div(id='dd-test', style={"height":"20px", "width":"100px"}),
-        html.Div([
-            html.Div(dcc.Graph(id="drug-network"), style={"width":"49%"}),
-            html.Div(dcc.Graph(id='drill-down'), style={"width":"49%"})
-        ], style={"display":"flex", "flex-direction":"row", "justify-content":"space-between"})
-        ,
-    ], id="graph-container")
+        html.Div(
+            [
+                html.Div(dcc.Graph(id="drug-network"), style={"width": "49%"}),
+                html.Div(dcc.Graph(id="drill-down"), style={"width": "49%"}),
+            ],
+            style={
+                "display": "flex",
+                "flex-direction": "row",
+                "justify-content": "space-between",
+            },
+        ),
+    ],
+    id="graph-container",
+)
+
 
 @ensure_csrf_cookie
 def index(request):
@@ -46,7 +66,7 @@ def index(request):
         if form.is_valid():
             # Process form data
             print("form is valid")
-            request.session['dash_data']  = form.cleaned_data
+            request.session["dash_data"] = form.cleaned_data
             # use functions
             cui_name_pair = getRxNorm(form.cleaned_data["drug"])
             interaction = getInteractionData(list(cui_name_pair.keys()))
@@ -54,9 +74,9 @@ def index(request):
             context = {
                 "form": form,
                 "cached": cui_name_pair,
-                'dash-data': json.dumps(form.cleaned_data),
+                "dash-data": json.dumps(form.cleaned_data),
                 "graph": buildGraphVisualization(interaction),
-                "interaction_data": json.dumps(interaction)
+                "interaction_data": json.dumps(interaction),
             }
             return render(request, "index.html", context)
     else:
@@ -64,47 +84,87 @@ def index(request):
     context = {"greetings": greeting_list, "only_one": greeting_list[1], "form": form}
     return render(request, "index.html", context)
 
+
 @app.callback(
-        dash.dependencies.Output('drug-network', 'figure'),
-        dash.dependencies.Input('submit-btn', 'n_clicks'), # click counter - n_clicks
-        dash.dependencies.Input('dd', 'value'), # dropdown value - query
-        State('query', 'value'), # query string - text
-        prevent_initial_call=True,
+    dash.dependencies.Output("drug-network", "figure"),
+    dash.dependencies.Output("status-div", "children"),
+    dash.dependencies.Input("submit-btn", "n_clicks"),  # click counter - n_clicks
+    dash.dependencies.Input("dd", "value"),  # dropdown value - query
+    State("query", "value"),  # query string - text
+    prevent_initial_call=True,
 )
 def update_graph(n_clicks, query, text):
     """draws the drug interaction graph"""
     if n_clicks >= 1:
-        print(f"query string is: {text}")
-        cui_name_pair = getRxNorm(text)
-        interaction = getInteractionData(list(cui_name_pair.keys()))   
-        return buildGraphVisualization(interaction)
+        try:
+            print(f"query string is: {text}")
+            cui_name_pair = getRxNorm(text)
+            interaction = getInteractionData(list(cui_name_pair.keys()))
+            return buildGraphVisualization(interaction), "Graph built successfully"
+        except ValueError:
+            return dcc.Graph(), "Please enter at least two drug names"
+        except KeyError:
+            return dcc.Graph(), "No interaction is found for this group of drugs!"
     return dash.no_update
 
 
 @app.callback(
-    Output('drill-down', 'figure'),
+    Output("drill-down", "figure"),
     Input("drug-network", "clickData"),
-    Input("dd", "value")
+    Input("dd", "value"),
 )
 def update_drilldown(click_data, dropdown):
     """updates the drilldown graph"""
-    try: 
-        cui_clicked = click_data['points'][0]['text'].split("<br>")[0].split(": ")[1]
+    try:
+        cui_clicked = click_data["points"][0]["text"].split("<br>")[0].split(": ")[1]
         openFda = getOpenFda(cui_clicked)
-    except KeyError: 
+    except:
         # when the user clicks on the edge scatter points
         pass
     print(cui_clicked)
     if dropdown == "Patient Sex":
-        plot_dict = openFda['sex']
-        return px.bar(x=plot_dict.keys(), y = plot_dict.values(), color=plot_dict.keys())
-    elif dropdown == "age_onset":
-        plot_dict = openFda['age_onset']
-
+        plot_dict = openFda["sex"]
+        fig = px.bar(x=plot_dict.keys(), y=plot_dict.values(), color=plot_dict.keys())
+        fig.update_layout(title=f'Gender distribution for adverse events for {cui_clicked}')
+        return fig
+    elif dropdown == "Age of onset":
+        plot_dict = openFda["age_onset"]
+        fig = px.bar(x=plot_dict.keys(), y=plot_dict.values(), color=plot_dict.keys())
+        fig.update_layout(
+            xaxis_range=[0, 100],
+            xaxis_title="Age",
+            yaxis_title="Count",
+            title=f"Distribution of age of adverse event onset for {cui_clicked}",
+        )
+        fig.update(layout_coloraxis_showscale=False)
+        return fig
+    elif dropdown == "Reason for hospitalization":
+        pass
+    elif dropdown == "Report nation":
+        plot_data = (
+            gpd.GeoDataFrame(openFda["reporting_country"])
+            .merge(shp_file, how="inner", left_on="term", right_on="ISO")
+            .drop(["term", "AFF_ISO"], axis=1)
+        )
+        plot_data = plot_data.set_geometry("geometry").set_index("ISO")
+        fig = px.choropleth(
+            plot_data,
+            geojson=plot_data.geometry,
+            locations=plot_data.index,
+            color="count",
+        )
+        fig.update_layout(f'Reporting country distribution for {cui_clicked}')
+        return fig
+    elif dropdown == "Report date":
+        pass
+    elif dropdown == "Reaction type":
+        pass
 
 
 def getRxNorm(query_str):
     query_str = [i.strip().lower() for i in query_str.split(",")]
+    if len(query_str) < 2:
+        raise ValueError("Please enter at least two drug names")
     cui_name = {}  # dictionary to store cui to drug_name mapping
     with open("./my_app/cache.json", "r") as json_file:
         cache = json.load(json_file)
@@ -141,15 +201,23 @@ def getOpenFda(cui):
     results = {}
     # sex
     # 0 unknown, 1 male, 2 female
-    content = requests.get(f'{BASE_URL}:%22{cui}%22&count=patient.patientsex').json()
-    sex_dict = {0: "unknown", 1: "male", 2: 'female'}
-    results["sex"] = {sex_dict[i['term']]: i['count'] for i in content['results']}
+    content = requests.get(f"{BASE_URL}:%22{cui}%22&count=patient.patientsex").json()
+    sex_dict = {0: "unknown", 1: "male", 2: "female"}
+    results["sex"] = {sex_dict[i["term"]]: i["count"] for i in content["results"]}
+    del content
 
-    # 
-    results["age_onset"] = ...
+    #
+    content = requests.get(
+        f"{BASE_URL}:%22{cui}%22&count=patient.patientonsetage"
+    ).json()
+    results["age_onset"] = {i["term"]: i["count"] for i in content["results"]}
+
     results["hospitalization"] = ...
     results["report_date"] = ...
-    results["reporting_country"] = ...
+
+    results["reporting_country"] = requests.get(
+        f"{BASE_URL}:%22{cui}%22&count=primarysourcecountry.exact"
+    ).json()["results"]
     results["reaction_type"] = ...
     return results
 
@@ -292,8 +360,8 @@ def buildGraphVisualization(interaction):
     for node, adjacencies in enumerate(G.adjacency()):
         n_adjacencies.append(len(adjacencies[1]))
         n_text.append(
-            f"RxCUI: {adjacencies[0]}<br>" + 
-            f"Drug name: {graph.vert_list[adjacencies[0]].name}<br>"
+            f"RxCUI: {adjacencies[0]}<br>"
+            + f"Drug name: {graph.vert_list[adjacencies[0]].name}<br>"
             + f"# of connections: {str(len(adjacencies[1]))}"
         )
 
@@ -323,26 +391,9 @@ def buildGraphVisualization(interaction):
 
     fig.add_trace(edge_trace)
     fig.update_layout(clickmode="event+select")
-    fig.update_layout(height=700) 
+    fig.update_layout(height=700)
     fig.update_traces(marker_size=20)
     return fig
-
-
-# def assembleVisual(interaction_graph):
-#     app_post = DjangoDash("drug-interaction")
-
-#     app_post.layout = html.Div([
-#         html.Div('Dash application'),
-#         html.Div(dcc.Dropdown(["1","2","3"], "1", id='dd')),
-#         html.Div(id='dd-test', style={"height":"20px", "width":"100px"}),
-#         html.Div(
-#             dcc.Graph(figure=interaction_graph, 
-#                       id="drug-network")),
-#         # html.Div(
-#         #     dcc.Graph(id='drill-down')
-#         # ),
-#     ], id="graph-container")
-
 
 
 # references:

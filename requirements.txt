@@ -1,9 +1,12 @@
 asgiref==3.7.2
+attrs==23.1.0
 blinker==1.7.0
 certifi==2023.11.17
 channels==4.0.0
 charset-normalizer==3.3.2
 click==8.1.7
+click-plugins==1.1.1
+cligj==0.7.2
 dash==2.9.3
 dash-bootstrap-components==1.5.0
 dash-core-components==2.0.0
@@ -14,7 +17,9 @@ Django==5.0
 django-heroku==0.3.1
 django-plotly-dash==2.2.2
 dpd-components==0.1.0
+fiona==1.9.5
 Flask==3.0.0
+geopandas==0.14.1
 idna==3.4
 itsdangerous==2.1.2
 Jinja2==3.1.2
@@ -25,10 +30,12 @@ packaging==23.2
 pandas==2.1.4
 plotly==5.18.0
 psycopg2==2.9.9
+pyproj==3.6.1
 python-dateutil==2.8.2
 python-dotenv==1.0.0
 pytz==2023.3.post1
 requests==2.31.0
+shapely==2.0.2
 six==1.16.0
 sqlparse==0.4.4
 tenacity==8.2.3
