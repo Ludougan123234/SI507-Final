@@ -30,7 +30,7 @@ app.layout = html.Div(
     [
         html.Div("Dash application"),
         dcc.Input(id="query", type="text"),
-        html.Div(id="status-div", style={"color": "blue", "height": "200px"}),
+        html.Div(id="status-div", style={"color": "blue", "height": "20px"}),
         html.Div(
             dcc.Dropdown(
                 ["Patient Sex", "Age of onset", "Report nation", "4", "5", "6"],
@@ -125,7 +125,7 @@ def update_drilldown(click_data, dropdown):
     if dropdown == "Patient Sex":
         plot_dict = openFda["sex"]
         fig = px.bar(x=plot_dict.keys(), y=plot_dict.values(), color=plot_dict.keys())
-        fig.update_layout(title=f'Gender distribution for adverse events for {cui_clicked}')
+        fig.update_layout(title=f'Gender distribution of adverse events for {cui_clicked}')
         return fig
     elif dropdown == "Age of onset":
         plot_dict = openFda["age_onset"]

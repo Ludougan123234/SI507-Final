@@ -13,7 +13,7 @@ dash-core-components==2.0.0
 dash-html-components==2.0.0
 dash-table==5.0.0
 dj-database-url==2.1.0
-Django==5.0
+Django==4.2.7
 django-heroku==0.3.1
 django-plotly-dash==2.2.2
 dpd-components==0.1.0
