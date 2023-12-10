@@ -14,7 +14,7 @@ import plotly.express as px
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.template import loader
-from dash import Dash, dcc, html, State
+from dash import Dash, dcc, html, State, dash_table
 from django_plotly_dash import DjangoDash
 from dash.dependencies import Input, Output
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -43,7 +43,13 @@ app.layout = html.Div(
         html.Div(
             [
                 html.Div(dcc.Graph(id="drug-network"), style={"width": "49%"}),
-                html.Div(dcc.Graph(id="drill-down"), style={"width": "49%"}),
+                html.Div(html.Div(
+                    [dcc.Graph(id="drill-down", style={"height": "49%"}),
+                     dcc.Input(id='bfs-input', type='text', style={"height": "3%"}),
+                     dash_table.DataTable(id='bfs-table',
+                                          columns=[{"name": i, "id": i} for i in ['Column1', 'Column2']],
+                                          data=[])]),
+                style={"width": "49%"}),
             ],
             style={
                 "display": "flex",
@@ -118,10 +124,10 @@ def update_drilldown(click_data, dropdown):
     try:
         cui_clicked = click_data["points"][0]["text"].split("<br>")[0].split(": ")[1]
         openFda = getOpenFda(cui_clicked)
+        print(cui_clicked)
     except:
         # when the user clicks on the edge scatter points
         pass
-    print(cui_clicked)
     if dropdown == "Patient Sex":
         plot_dict = openFda["sex"]
         fig = px.bar(x=plot_dict.keys(), y=plot_dict.values(), color=plot_dict.keys())
@@ -139,6 +145,7 @@ def update_drilldown(click_data, dropdown):
         fig.update(layout_coloraxis_showscale=False)
         return fig
     elif dropdown == "Report nation":
+        # choropleth mapping 
         plot_data = (
             gpd.GeoDataFrame(openFda["reporting_country"])
             .merge(shp_file, how="inner", left_on="term", right_on="ISO")
@@ -154,6 +161,10 @@ def update_drilldown(click_data, dropdown):
         fig.update_layout(title=f'Reporting country distribution for {cui_clicked}')
         return fig
     elif dropdown == "Reaction type":
+        n=15
+        fig = px.bar(x=list(plot_dict.keys())[:n], y = list(plot_dict.values())[:n])
+        fig.update(layout_coloraxis_showscale=False, layout_showlegend=False)
+        fig.update_layout(title_text='Top 15 Adverse Reactions of Sildenafil', xaxis_title='Adverse Reaction', yaxis_title='Count')
         pass
 
 
@@ -196,7 +207,7 @@ def getOpenFda(cui):
     BASE_URL = "https://api.fda.gov/drug/event.json?search=patient.drug.openfda.rxcui"
     results = {}
     # sex
-    # 0 unknown, 1 male, 2 female
+    # 0 is unknown, 1 is male, 2 is female, baba is you
     content = requests.get(f"{BASE_URL}:%22{cui}%22&count=patient.patientsex").json()
     sex_dict = {0: "unknown", 1: "male", 2: "female"}
     results["sex"] = {sex_dict[i["term"]]: i["count"] for i in content["results"]}
@@ -207,9 +218,6 @@ def getOpenFda(cui):
         f"{BASE_URL}:%22{cui}%22&count=patient.patientonsetage"
     ).json()
     results["age_onset"] = {i["term"]: i["count"] for i in content["results"]}
-
-    results["hospitalization"] = ...
-    results["report_date"] = ...
 
     results["reporting_country"] = requests.get(
         f"{BASE_URL}:%22{cui}%22&count=primarysourcecountry.exact"
