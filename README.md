@@ -40,4 +40,4 @@ The file structure of the repository is listed below:
 
 ## How to interact with the web application
 
-See demo video
+ Users can enter a series of comma-separated drug names in an input box and select a specific type of aggregated drug adverse event data they would like to see in a drop-down menu. After submitting the input, the program outputs an interaction graph visualization. Users can hover over a vertex to see the name of the drug, the number of connections, and the estimated average shortest path from the vertex to other vertices. Users can also hover over an edge to see the drug interaction information. After a graph has been successfully generated, users can click on a graph vertex to inspect the specific type of adverse event data associated with the drug. The available options are: patient sex distribution, age of onset, reporting nation, and types of adverse events. These options are visualized using bar graphs or choropleth mapping. The screenshot below shows the interface of the application. 
