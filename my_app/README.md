@@ -17,6 +17,7 @@ flowchart TB
     Vertex1{Vertex 1<br/>RxCUI, Drug name} -- edge<br/> from, to,<br/>source of information, severity of interaction, additional info --> Vertex2{Vertex 2<br/>RxCUI, Drug name} 
     end
 ```
-The retrieved data is represented using a graph. On a high level, the graph is modeled using a graph class, an edge class, and a vertex class. The following diagram shows the relationship of graph, vertices, and edges. 
 
-A vertex holds the RxCUI code and corresponding drug name. An edge represents an interaction between drugs and holds information like the data source, severity, and additional information of the drug interaction aside from the “from” vertex and the “to” vertex. The graph has a vert_list and num_vertices attribute. The edge is modeled separately from the vertex class since the edge needs to hold the severity and description of the interaction. The complete graph definition and the BFS code for the graph can be found in the graph.py file. 
+The retrieved data is represented using a graph. On a high level, the graph is modeled using a graph class, an edge class, and a vertex class. The following diagram shows the relationship of graph, vertices, and edges.
+
+A vertex holds the RxCUI code and corresponding drug name. An edge represents an interaction between drugs and holds information like the data source, severity, and additional information of the drug interaction aside from the “from” vertex and the “to” vertex. The graph has a vert_list and num_vertices attribute. The edge is modeled separately from the vertex class since the edge needs to hold the severity and description of the interaction. The complete graph definition and the BFS code for the graph can be found in the graph.py file.
