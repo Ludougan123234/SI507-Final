@@ -30,6 +30,13 @@
         float: right; /* Only float right for specific items */
         font-size: 16px; 
     }
+
+    div.caution{
+        background-color: #f27b00;
+        padding: 10px 10px 10px 10px; 
+        opacity: 0.8;
+        border: 2px solid #ff2400;
+    }
 </style>
 
 <ul class='header'>
@@ -55,10 +62,15 @@
 </form> {% endcomment %}
 {% comment %} <div>{{ cached }}</div> {% endcomment %}
 {% comment %} <div style="width: 700px; height: 700px">{{ graph|safe }}</div> {% endcomment %}
-{% plotly_app name="drug-interaction" ratio=0.5%}
-{% comment %}
-<span>
-  Limitations: 1. This applicaation does not store user data, so any progress
-  will be lost once the page is refreshed. 2.
-</span>
-{% endcomment %}
+{% plotly_app name="drug-interaction" ratio=0.49%}
+
+
+<div class="caution">
+  Disclaimer: <br>
+  1. The information provided here <strong>should not be used for diagnostic purposes or drug prescriptions</strong>. <br>
+
+  Regarding usage: <br>
+  1. If you are experiencing difficulties clicking on the graph node to show drill downs, please try to 
+  zoom in on the graph and click on the node again. <br> 
+
+</div>

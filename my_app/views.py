@@ -67,30 +67,7 @@ app.layout = html.Div(
 
 @ensure_csrf_cookie
 def index(request):
-    greeting_list = ["hello", "bye"]
-
-    # get user option
-    if request.method == "POST":
-        form = DrugForm(request.POST)
-        if form.is_valid():
-            # Process form data
-            print("form is valid")
-            request.session["dash_data"] = form.cleaned_data
-            # use functions
-            cui_name_pair = getRxNorm(form.cleaned_data["drug"])
-            interaction = getInteractionData(list(cui_name_pair.keys()))
-            # assembleVisual(buildGraphVisualization(interaction))
-            context = {
-                "form": form,
-                "cached": cui_name_pair,
-                "dash-data": json.dumps(form.cleaned_data),
-                "graph": buildGraphVisualization(interaction),
-                "interaction_data": json.dumps(interaction),
-            }
-            return render(request, "index.html", context)
-    else:
-        form = DrugForm()
-    context = {"greetings": greeting_list, "only_one": greeting_list[1], "form": form}
+    context = {}
     return render(request, "index.html", context)
 
 
@@ -184,6 +161,7 @@ def update_drilldown(click_data, dropdown):
             yaxis_title="Count",
         )
         return fig
+
 
 
 def getRxNorm(query_str):
@@ -410,7 +388,7 @@ def buildGraphVisualization(graph):
     fig = go.Figure(
         data=[edge_trace, node_trace, mnode_trace],
         layout=go.Layout(
-            title="<br>Drug interactions graph",
+            title="Drug interactions graph",
             titlefont_size=16,
             showlegend=False,
             hovermode="closest",
