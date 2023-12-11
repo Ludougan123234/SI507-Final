@@ -36,3 +36,8 @@ The file structure of the repository is listed below:
 | `requirements.txt` | ❌| Required python package |
 | `runtime.txt` | ❌| Heroku version python configuration |
 | `try.ipynb` | ❌| Contains code snippets for experimentation with graph data strucutre and API access  |
+
+
+## How to interact with the web application
+
+See demo video
