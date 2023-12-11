@@ -371,7 +371,7 @@ def buildGraphVisualization(graph):
             f"RxCUI: {adjacencies[0]}<br>"
             + f"Drug name: {graph.vert_list[adjacencies[0]].name}<br>"
             + f"# of connections: {str(len(adjacencies[1]))}<br>"
-            + f"estimated degree of connectedness to other vertices: {str(random_walk(graph.vert_list.keys(), graph, adjacencies[0]))}"
+            + f"# of average shortest path # to other vertices: {str(random_walk(graph.vert_list.keys(), graph, adjacencies[0]))}"
         )
 
     node_trace.marker.color = n_adjacencies
