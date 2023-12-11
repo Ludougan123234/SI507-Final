@@ -5,7 +5,7 @@ import flask
 import random
 import requests
 import networkx as nx
-from .graph import Graph
+from .graph import Graph, random_walk
 from .forms import DrugForm
 from collections import deque
 import geopandas as gpd
@@ -33,7 +33,7 @@ app.layout = html.Div(
         html.Div(id="status-div", style={"color": "blue", "height": "20px"}),
         html.Div(
             dcc.Dropdown(
-                ["Patient Sex", "Age of onset", "Report nation", "4", "5", "6"],
+                ["Patient Sex", "Age of onset", "Report nation", "Reaction type"],
                 "Patient Sex",
                 id="dd",
             )
@@ -43,13 +43,21 @@ app.layout = html.Div(
         html.Div(
             [
                 html.Div(dcc.Graph(id="drug-network"), style={"width": "49%"}),
-                html.Div(html.Div(
-                    [dcc.Graph(id="drill-down", style={"height": "49%"}),
-                     dcc.Input(id='bfs-input', type='text', style={"height": "3%"}),
-                     dash_table.DataTable(id='bfs-table',
-                                          columns=[{"name": i, "id": i} for i in ['Column1', 'Column2']],
-                                          data=[])]),
-                style={"width": "49%"}),
+                html.Div(
+                    html.Div(
+                        [
+                            dcc.Graph(id="drill-down", style={"height": "49%"}),
+                            dash_table.DataTable(
+                                id="bfs-result",
+                                columns=[
+                                    {"name": i, "id": i} for i in ["Column1", "Column2"]
+                                ],
+                                data=[],
+                            ),
+                        ]
+                    ),
+                    style={"width": "49%"},
+                ),
             ],
             style={
                 "display": "flex",
@@ -106,12 +114,17 @@ def update_graph(n_clicks, query, text):
             print(f"query string is: {text}")
             cui_name_pair = getRxNorm(text)
             interaction = getInteractionData(list(cui_name_pair.keys()))
-            return buildGraphVisualization(interaction), "Graph built successfully"
+            graph = getInteractionGraph(interaction)
+            return (
+                buildGraphVisualization(graph),
+                "Graph built successfully",
+            )
         except ValueError:
             return dcc.Graph(), "Please enter at least two drug names"
-        except KeyError:
+        except KeyError as e:
+            print(e)
             return dcc.Graph(), "No interaction is found for this group of drugs!"
-    return dash.no_update
+    return dash.no_update, ""
 
 
 @app.callback(
@@ -131,7 +144,9 @@ def update_drilldown(click_data, dropdown):
     if dropdown == "Patient Sex":
         plot_dict = openFda["sex"]
         fig = px.bar(x=plot_dict.keys(), y=plot_dict.values(), color=plot_dict.keys())
-        fig.update_layout(title=f'Gender distribution of adverse events for {cui_clicked}')
+        fig.update_layout(
+            title=f"Gender distribution of adverse events for {cui_clicked}"
+        )
         return fig
     elif dropdown == "Age of onset":
         plot_dict = openFda["age_onset"]
@@ -145,7 +160,7 @@ def update_drilldown(click_data, dropdown):
         fig.update(layout_coloraxis_showscale=False)
         return fig
     elif dropdown == "Report nation":
-        # choropleth mapping 
+        # choropleth mapping
         plot_data = (
             gpd.GeoDataFrame(openFda["reporting_country"])
             .merge(shp_file, how="inner", left_on="term", right_on="ISO")
@@ -158,14 +173,21 @@ def update_drilldown(click_data, dropdown):
             locations=plot_data.index,
             color="count",
         )
-        fig.update_layout(title=f'Reporting country distribution for {cui_clicked}')
+        fig.update_layout(title=f"Reporting country distribution for {cui_clicked}")
         return fig
     elif dropdown == "Reaction type":
-        n=15
-        fig = px.bar(x=list(plot_dict.keys())[:n], y = list(plot_dict.values())[:n])
+        plot_dict = {i['term'].capitalize(): i['count'] for i in openFda['reaction_type']}
+        plot_dict = sorted(plot_dict.items(), key=lambda x: x[1], reverse=True)
+        plot_dict = {i[0]: i[1] for i in plot_dict}
+        n = 15
+        fig = px.bar(x=list(plot_dict.keys())[:n], y=list(plot_dict.values())[:n])
         fig.update(layout_coloraxis_showscale=False, layout_showlegend=False)
-        fig.update_layout(title_text='Top 15 Adverse Reactions of Sildenafil', xaxis_title='Adverse Reaction', yaxis_title='Count')
-        pass
+        fig.update_layout(
+            title_text=f"Top 15 Adverse Reactions of {cui_clicked}",
+            xaxis_title="Adverse Reaction",
+            yaxis_title="Count",
+        )
+        return fig
 
 
 def getRxNorm(query_str):
@@ -213,16 +235,21 @@ def getOpenFda(cui):
     results["sex"] = {sex_dict[i["term"]]: i["count"] for i in content["results"]}
     del content
 
-    #
+    # age of onset
     content = requests.get(
         f"{BASE_URL}:%22{cui}%22&count=patient.patientonsetage"
     ).json()
     results["age_onset"] = {i["term"]: i["count"] for i in content["results"]}
 
+    # reporting country
     results["reporting_country"] = requests.get(
         f"{BASE_URL}:%22{cui}%22&count=primarysourcecountry.exact"
     ).json()["results"]
-    results["reaction_type"] = ...
+
+    # reaction type
+    results["reaction_type"] = requests.get(
+        f"{BASE_URL}:%22{cui}%22&count=patient.reaction.reactionmeddrapt.exact"
+    ).json()['results']
     return results
 
 
@@ -236,7 +263,23 @@ def getInteractionData(cui_list):
     return content
 
 
-def buildGraphVisualization(interaction):
+def getInteractionGraph(interaction):
+    graph = Graph()
+    for i in interaction["fullInteractionTypeGroup"]:
+        for j in i["fullInteractionType"]:
+            graph.add_edge(
+                j["minConcept"][0]["rxcui"],
+                j["minConcept"][0]["name"],
+                j["minConcept"][1]["rxcui"],
+                j["minConcept"][1]["name"],
+                i["sourceName"],
+                j["interactionPair"][0]["severity"],
+                j["interactionPair"][0]["description"],
+            )
+    return graph
+
+
+def buildGraphVisualization(graph):
     # Function to create a NetworkX graph from your graph structure
 
     def queue(a, b, qty):
@@ -278,19 +321,6 @@ def buildGraphVisualization(interaction):
                     additional_info=vertex.connectedTo[neighbor].additional_info,
                 )
         return G
-
-    graph = Graph()
-    for i in interaction["fullInteractionTypeGroup"]:
-        for j in i["fullInteractionType"]:
-            graph.add_edge(
-                j["minConcept"][0]["rxcui"],
-                j["minConcept"][0]["name"],
-                j["minConcept"][1]["rxcui"],
-                j["minConcept"][1]["name"],
-                i["sourceName"],
-                j["interactionPair"][0]["severity"],
-                j["interactionPair"][0]["description"],
-            )
 
     # Convert graph to a NetworkX graph
     G = nxGraph(graph)
@@ -362,11 +392,14 @@ def buildGraphVisualization(interaction):
     n_text = []
 
     for node, adjacencies in enumerate(G.adjacency()):
+        print(adjacencies[0])
+        print(adjacencies[1])
         n_adjacencies.append(len(adjacencies[1]))
         n_text.append(
             f"RxCUI: {adjacencies[0]}<br>"
             + f"Drug name: {graph.vert_list[adjacencies[0]].name}<br>"
-            + f"# of connections: {str(len(adjacencies[1]))}"
+            + f"# of connections: {str(len(adjacencies[1]))}<br>"
+            + f"estimated degree of connectedness to other vertices: {str(random_walk(graph.vert_list.keys(), graph, adjacencies[0]))}"
         )
 
     node_trace.marker.color = n_adjacencies

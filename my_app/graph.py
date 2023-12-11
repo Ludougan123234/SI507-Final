@@ -1,5 +1,7 @@
 """Definition for graph, edge, and vertex"""
 from collections import deque
+from math import inf
+import random
 class Edge:
     def __init__(self, src, dest, source, severity, additional_info):
         self.src = src # source
@@ -51,23 +53,75 @@ class Graph:
         self.vert_list[t].add_neighbor(self.vert_list[f], reverse_edge)
 
 def bfs(graph, start, end):
+    if start == end:
+        return 0
+    
     visited = set()
     # use deque to hold start vertex and distance 
     queue = deque([(start, 0)])
 
     while queue:
-        current_id, distance = queue.popleft()
-        if current_id == end:
-            return distance
+        cur_id, path = queue.popleft()
+        if cur_id == end:
+            return path
 
-        if current_id not in visited:
-            visited.add(current_id)
-            current = graph.vert_list[current_id]
+        if cur_id not in visited:
+            visited.add(cur_id)
+            current = graph.vert_list[cur_id]
             for neighbor in current.connectedTo:
                 if neighbor.id not in visited:
-                    queue.append((neighbor.id, distance + 1))
+                    queue.append((neighbor.id, path + 1))
 
-    return None # no paths found
+    return 0 # no paths found
+
+def weight_avg(n, avg_old, distance):
+    """Helper function to compute weighted average
+
+    Parameters
+    ----------
+    n : float
+        current iteration number
+    avg_old : float
+        Cumulative average
+    distance : float
+        New distance computed based on the `opt1()` function
+
+    Returns
+    -------
+    float
+        The weighted average of the path length
+    """
+    return ((n * avg_old) + distance) / (n + 1)
+
+def random_walk(drug_li, drug_graph, user_choice):
+    n = 0  # actor counter
+    avg_diff = inf
+    avg_old = 0
+    avg_all = []
+    drug_li = list(drug_li)
+    print(f"{'=' * 20} {drug_li}")
+
+    while avg_diff > 0.01:
+        # choose actor randomly
+        chosen = []
+        random_act = random.choice(drug_li)
+        if random_act not in chosen:
+            chosen.append(random_act)
+            print(f"calculating distance between KB and {random_act}")
+            # calculate distance from BK to actor
+            distance = bfs(drug_graph, start=user_choice, end=random_act)
+            # get list length for actor path
+            # distance = len(distance) - 1
+            if distance > 0:
+                avg = weight_avg(n, avg_old, distance)
+                avg_all.append(avg)
+                avg_diff = abs(avg - avg_old)
+                print(f"distance: {distance}, avg: {avg}, avg_diff: {avg_diff}")
+                avg_old = avg
+                n += 1
+    return sum(avg_all) / len(avg_all)
+
+
 """
 Exampel usage: 
 graph = Graph()
