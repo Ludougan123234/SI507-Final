@@ -99,7 +99,6 @@ def random_walk(drug_li, drug_graph, user_choice):
     avg_old = 0
     avg_all = []
     drug_li = list(drug_li)
-    print(f"{'=' * 20} {drug_li}")
 
     while avg_diff > 0.01:
         # choose actor randomly
@@ -107,7 +106,6 @@ def random_walk(drug_li, drug_graph, user_choice):
         random_act = random.choice(drug_li)
         if random_act not in chosen:
             chosen.append(random_act)
-            print(f"calculating distance between KB and {random_act}")
             # calculate distance from BK to actor
             distance = bfs(drug_graph, start=user_choice, end=random_act)
             # get list length for actor path
@@ -116,7 +114,7 @@ def random_walk(drug_li, drug_graph, user_choice):
                 avg = weight_avg(n, avg_old, distance)
                 avg_all.append(avg)
                 avg_diff = abs(avg - avg_old)
-                print(f"distance: {distance}, avg: {avg}, avg_diff: {avg_diff}")
+                # print(f"distance: {distance}, avg: {avg}, avg_diff: {avg_diff}")
                 avg_old = avg
                 n += 1
     return sum(avg_all) / len(avg_all)

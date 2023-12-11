@@ -25,22 +25,21 @@ shp_file = gpd.read_file("./my_app/World_Countries_Generalized.zip").drop(
     ["SHAPE_Leng", "SHAPE_Area", "FID", "COUNTRYAFF"], axis=1
 )
 
-FDA_KEY = os.environ['FDA_KEY']
+FDA_KEY = os.environ["FDA_KEY"]
 
 print("FDA key found") if FDA_KEY else print("fda key not found")
 
 app.layout = html.Div(
     [
-        html.Div("Dash application"),
-        dcc.Input(id="query", type="text"),
+        html.Div("Please enter a series of drug names, separated by comma:"),
+        html.Div([dcc.Input(id="query", type="text", style={"height": "20px", "width": "270px"}),
+                  html.Div("", style={'height': "10px"}),
+                  html.Div("Please select a specific type of information to display"),
+                  dcc.Dropdown(["Patient Sex", "Age of onset", "Report nation", "Reaction type"],
+                               "Patient Sex",  id="dd",
+                               style={"height": "35px", "width": "270px", "display": "inline-block"})],
+                style = {"display": "flex", "flex-direction": "column",}),
         html.Div(id="status-div", style={"color": "blue", "height": "20px"}),
-        html.Div(
-            dcc.Dropdown(
-                ["Patient Sex", "Age of onset", "Report nation", "Reaction type"],
-                "Patient Sex",
-                id="dd",
-            )
-        ),
         html.Button("Submit", id="submit-btn", n_clicks=0),
         # html.Div(id='dd-test', style={"height":"20px", "width":"100px"}),
         html.Div(
@@ -50,13 +49,6 @@ app.layout = html.Div(
                     html.Div(
                         [
                             dcc.Graph(id="drill-down", style={"height": "49%"}),
-                            dash_table.DataTable(
-                                id="bfs-result",
-                                columns=[
-                                    {"name": i, "id": i} for i in ["Column1", "Column2"]
-                                ],
-                                data=[],
-                            ),
                         ]
                     ),
                     style={"width": "49%"},
@@ -140,7 +132,6 @@ def update_drilldown(click_data, dropdown):
     try:
         cui_clicked = click_data["points"][0]["text"].split("<br>")[0].split(": ")[1]
         openFda = getOpenFda(cui_clicked)
-        print(cui_clicked)
     except:
         # when the user clicks on the edge scatter points
         pass
@@ -179,7 +170,9 @@ def update_drilldown(click_data, dropdown):
         fig.update_layout(title=f"Reporting country distribution for {cui_clicked}")
         return fig
     elif dropdown == "Reaction type":
-        plot_dict = {i['term'].capitalize(): i['count'] for i in openFda['reaction_type']}
+        plot_dict = {
+            i["term"].capitalize(): i["count"] for i in openFda["reaction_type"]
+        }
         plot_dict = sorted(plot_dict.items(), key=lambda x: x[1], reverse=True)
         plot_dict = {i[0]: i[1] for i in plot_dict}
         n = 15
@@ -229,14 +222,13 @@ def getRxNorm(query_str):
 
 
 def getOpenFda(cui):
-    BASE_URL = f"https://api.fda.gov/drug/event.json?apikey={FDA_KEY}&search=patient.drug.openfda.rxcui"
+    BASE_URL = f"https://api.fda.gov/drug/event.json?api_key={FDA_KEY}&search=patient.drug.openfda.rxcui"
     results = {}
     # sex
     # 0 is unknown, 1 is male, 2 is female, baba is you
     content = requests.get(f"{BASE_URL}:%22{cui}%22&count=patient.patientsex").json()
     sex_dict = {0: "unknown", 1: "male", 2: "female"}
     results["sex"] = {sex_dict[i["term"]]: i["count"] for i in content["results"]}
-    del content
 
     # age of onset
     content = requests.get(
@@ -252,7 +244,7 @@ def getOpenFda(cui):
     # reaction type
     results["reaction_type"] = requests.get(
         f"{BASE_URL}:%22{cui}%22&count=patient.reaction.reactionmeddrapt.exact"
-    ).json()['results']
+    ).json()["results"]
     return results
 
 
