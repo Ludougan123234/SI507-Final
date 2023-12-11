@@ -8,6 +8,7 @@ on:
 
 env: 
   SECRET_KEY: ${{ secrets.SECRET_KEY }}
+  FDA_KEY: ${{ secrets.FDA_KEY  }}
 
 jobs:
   build:

@@ -25,6 +25,9 @@ shp_file = gpd.read_file("./my_app/World_Countries_Generalized.zip").drop(
     ["SHAPE_Leng", "SHAPE_Area", "FID", "COUNTRYAFF"], axis=1
 )
 
+FDA_KEY = os.environ['FDA_KEY']
+
+print("FDA key found") if FDA_KEY else print("fda key not found")
 
 app.layout = html.Div(
     [
@@ -226,7 +229,7 @@ def getRxNorm(query_str):
 
 
 def getOpenFda(cui):
-    BASE_URL = "https://api.fda.gov/drug/event.json?search=patient.drug.openfda.rxcui"
+    BASE_URL = f"https://api.fda.gov/drug/event.json?apikey={FDA_KEY}&search=patient.drug.openfda.rxcui"
     results = {}
     # sex
     # 0 is unknown, 1 is male, 2 is female, baba is you
