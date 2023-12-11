@@ -6,7 +6,6 @@ import random
 import requests
 import networkx as nx
 from .graph import Graph, random_walk
-from .forms import DrugForm
 from collections import deque
 import geopandas as gpd
 import plotly.graph_objects as go
