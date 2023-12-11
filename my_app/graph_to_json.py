@@ -1,6 +1,8 @@
 from graph import Graph
 import requests
 import json
+import networkx as nx
+import matplotlib.pyplot as plt
 
 # get data
 content = requests.get(
@@ -71,4 +73,18 @@ for i, v in zip(graph_json.keys(), graph_json.values()):
         )
 
 # check to see if the graph is working
-print(new_graph.vert_list["207106"])
+def create_networkx_graph(g):
+    G = nx.Graph()
+    for vertex in g.vert_list.values():
+        for edge in vertex.connectedTo.values():
+            G.add_edge(edge.src.id, edge.dest.id)
+
+    pos = nx.spring_layout(G)  # positions for all nodes
+    nx.draw(G, pos, with_labels=True)
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+    plt.title("Example Drug graph")
+    plt.show()
+    return G
+
+g = create_networkx_graph(new_graph)

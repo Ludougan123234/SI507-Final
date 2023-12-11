@@ -5,7 +5,24 @@ This repository contains code files for SI 507 final project.
 This project aims to represent drug-drug interaction as graphs.
 
 The web application can be accessed here: [Heroku web app](https://mjpan-fp507-2d393f67a958.herokuapp.com/index)
-🚧 The web application is still under active work. 🚧
+
+To run the code, first install the dependencies by running the following command in the terminal:
+
+```bash
+pip install -r requirements.txt
+```
+
+The `requirements.txt` file contains all the required packages for this project.
+
+Then, run the following command to start the server:
+
+```bash
+python manage.py runserver
+```
+
+This command starts a server at localhost (usually with port 8000). The web application can be accessed by going to the url: `localhost:[PORT]/index`. (the port number should be the same as the one shown in the terminal on line `Starting development server at http://127.0.0.1:[PORT]`)
+
+The Django secret key as well as the FDA API secret key is provided in the .env file in the zip file submitted to canvas. Make sure that you are in the directory of the project when running the above commands with the virtual environment with django installation activated.
 
 The file structure of the repository is listed below:
 | File  | is directory?  | description |
