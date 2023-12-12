@@ -3,6 +3,7 @@ import json
 import dash
 import flask
 import random
+import numpy as np
 import requests
 import networkx as nx
 from .graph import Graph, random_walk
@@ -18,18 +19,20 @@ from django_plotly_dash import DjangoDash
 from dash.dependencies import Input, Output
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-
+# initialize dash app and geodataframe
 app = DjangoDash("drug-interaction")
 shp_file = gpd.read_file("./my_app/World_Countries_Generalized.zip").drop(
     ["SHAPE_Leng", "SHAPE_Area", "FID", "COUNTRYAFF"], axis=1
 )
 
+# check if FDA API key is found
 FDA_KEY = os.environ["FDA_KEY"]
-
 print("FDA key found") if FDA_KEY else print("fda key not found")
 
+# layout for the dash app
 app.layout = html.Div(
     [
+        # input box and drop down menu
         html.Div("Please enter a series of drug names, separated by comma:"),
         html.Div([dcc.Input(id="query", type="text", style={"height": "20px", "width": "270px"}),
                   html.Div("", style={'height': "10px"}),
@@ -38,9 +41,10 @@ app.layout = html.Div(
                                "Patient Sex",  id="dd",
                                style={"height": "35px", "width": "270px", "display": "inline-block"})],
                 style = {"display": "flex", "flex-direction": "column",}),
+        # status string
         html.Div(id="status-div", style={"color": "blue", "height": "20px"}),
         html.Button("Submit", id="submit-btn", n_clicks=0),
-        # html.Div(id='dd-test', style={"height":"20px", "width":"100px"}),
+        # graph container
         html.Div(
             [
                 html.Div(dcc.Graph(id="drug-network"), style={"width": "49%"}),
@@ -63,55 +67,102 @@ app.layout = html.Div(
     id="graph-container",
 )
 
-
+# django view
 @ensure_csrf_cookie
 def index(request):
+    """handle django view function
+
+    Parameters
+    ----------
+    request : 
+        request object
+
+    Returns
+    -------
+        Rendered django template
+    """
     context = {}
     return render(request, "index.html", context)
 
-
+# callback for network graph
 @app.callback(
-    dash.dependencies.Output("drug-network", "figure"),
-    dash.dependencies.Output("status-div", "children"),
+    dash.dependencies.Output("drug-network", "figure"), # network graph
+    dash.dependencies.Output("status-div", "children"), # status string
     dash.dependencies.Input("submit-btn", "n_clicks"),  # click counter - n_clicks
     dash.dependencies.Input("dd", "value"),  # dropdown value - query
     State("query", "value"),  # query string - text
     prevent_initial_call=True,
 )
 def update_graph(n_clicks, query, text):
-    """draws the drug interaction graph"""
+    """Update the drug network graph based on user input
+
+    Takes the `Input` callbacks supplied in the annotation as arguments
+    and return the network graph and a status string
+
+    Parameters
+    ----------
+    n_clicks : 
+        Number of times the "submit" button is clicked 
+    query : 
+        Value that the users select from the dropdown menu
+    text : 
+        User query string
+
+    Returns
+    -------
+        The network graph, 
+    """
     if n_clicks >= 1:
         try:
             print(f"query string is: {text}")
+            # get RxCUI and interaction data
             cui_name_pair = getRxNorm(text)
             interaction = getInteractionData(list(cui_name_pair.keys()))
+            # build interaction graph
             graph = getInteractionGraph(interaction)
             return (
                 buildGraphVisualization(graph),
                 "Graph built successfully",
             )
         except ValueError:
+            # if the user only enter one drug
             return dcc.Graph(), "Please enter at least two drug names"
         except KeyError as e:
             print(e)
+            # if there is no interaction found for users' input drug
             return dcc.Graph(), "No interaction is found for this group of drugs!"
     return dash.no_update, ""
 
 
 @app.callback(
     Output("drill-down", "figure"),
-    Input("drug-network", "clickData"),
-    Input("dd", "value"),
+    Input("drug-network", "clickData"), # click data from the network graph - click_data
+    Input("dd", "value"), # drop-down selection - dropdown
 )
 def update_drilldown(click_data, dropdown):
-    """updates the drilldown graph"""
+    """Update the adverse event drill down graph based on user input
+
+    Parameters
+    ----------
+    click_data : 
+        The vertex that the user clicks on
+    dropdown : 
+        The dropdown value that the user selects
+
+    Returns
+    -------
+        The drill down graph
+    """
     try:
+        # get the CUI number being clicked on
         cui_clicked = click_data["points"][0]["text"].split("<br>")[0].split(": ")[1]
         openFda = getOpenFda(cui_clicked)
     except:
         # when the user clicks on the edge scatter points
         pass
     if dropdown == "Patient Sex":
+        # patient sex - bar graph
+        # construct dicionary with data to plot (k: v = sex: count)
         plot_dict = openFda["sex"]
         fig = px.bar(x=plot_dict.keys(), y=plot_dict.values(), color=plot_dict.keys())
         fig.update_layout(
@@ -119,6 +170,8 @@ def update_drilldown(click_data, dropdown):
         )
         return fig
     elif dropdown == "Age of onset":
+        # age of onset - bar graph
+        # construct dicionary with data to plot (k: v = Age : count)
         plot_dict = openFda["age_onset"]
         fig = px.bar(x=plot_dict.keys(), y=plot_dict.values(), color=plot_dict.keys())
         fig.update_layout(
@@ -130,13 +183,16 @@ def update_drilldown(click_data, dropdown):
         fig.update(layout_coloraxis_showscale=False)
         return fig
     elif dropdown == "Report nation":
-        # choropleth mapping
+        # report nation - choropleth mapping
+        # use geopandas geodataframe
         plot_data = (
             gpd.GeoDataFrame(openFda["reporting_country"])
             .merge(shp_file, how="inner", left_on="term", right_on="ISO")
             .drop(["term", "AFF_ISO"], axis=1)
         )
+        # index needs to be ISO, geometry needs to be set too
         plot_data = plot_data.set_geometry("geometry").set_index("ISO")
+        # plot
         fig = px.choropleth(
             plot_data,
             geojson=plot_data.geometry,
@@ -146,6 +202,8 @@ def update_drilldown(click_data, dropdown):
         fig.update_layout(title=f"Reporting country distribution for {cui_clicked}")
         return fig
     elif dropdown == "Reaction type":
+        # reaction type - bar graph
+        # construct dicionary with data to plot (k: v = reaction type: count)
         plot_dict = {
             i["term"].capitalize(): i["count"] for i in openFda["reaction_type"]
         }
@@ -164,6 +222,27 @@ def update_drilldown(click_data, dropdown):
 
 
 def getRxNorm(query_str):
+    """Get data from the RxNorm API 
+
+    Takes the user input string and return a dictionary with RxCUI 
+    as keys and drug names as values. Caches data to the `cache.json` file. 
+    The cached data will be used if the user enters the same drug names. 
+    `cache.json` has structure: `{user_input: {RxCUI: drug_name, ...}}`
+
+    Parameters
+    ----------
+    query_str : 
+        Users' input string with drug names separated by commas
+
+    Returns
+    -------
+        A dictionary with RxCUI as keys and drug names as values
+
+    Raises
+    ------
+    ValueError
+        When users enter less than two drug names
+    """
     query_str = [i.strip().lower() for i in query_str.split(",")]
     if len(query_str) < 2:
         raise ValueError("Please enter at least two drug names")
@@ -173,9 +252,11 @@ def getRxNorm(query_str):
 
     for q in query_str:
         if q in cache.keys():
+            # if data is in cache
             print("data found in cache")
             cui_name.update(cache[q])  # update cui_name with cached data
         else:
+            # if data is not in cache, fetch new data
             print("Fetching new data")
             response = requests.get(
                 f"https://rxnav.nlm.nih.gov/REST/drugs.json?name={q}"
@@ -199,6 +280,17 @@ def getRxNorm(query_str):
 
 
 def getOpenFda(cui):
+    """Get data from the OpenFDA API
+
+    Parameters
+    ----------
+    cui : 
+        RxCUI Code numbers
+
+    Returns
+    -------
+        A dictionary containing the results
+    """
     BASE_URL = f"https://api.fda.gov/drug/event.json?api_key={FDA_KEY}&search=patient.drug.openfda.rxcui"
     results = {}
     # sex
@@ -226,9 +318,20 @@ def getOpenFda(cui):
 
 
 def getInteractionData(cui_list):
-    max_len = 50 if len(cui_list) >= 50 else len(cui_list)
-    cui_list = random.choices(cui_list, k=max_len)
-    cui_str = "+".join(cui_list)
+    """Get drug interaction data from NIH Drug interaction data
+
+    Parameters
+    ----------
+    cui_list : 
+        A list of RxCUI numbers
+
+    Returns
+    -------
+        The json response from the NIH API
+    """
+    max_len = 50 if len(cui_list) >= 50 else len(cui_list) # max len is 50
+    cui_list = random.choices(cui_list, k=max_len) # choose max of 50 CUI from list
+    cui_str = "+".join(cui_list) # join CUI with +
     content = requests.get(
         f"https://rxnav.nlm.nih.gov/REST/interaction/list.json?rxcuis={cui_str}"
     ).json()
@@ -236,7 +339,20 @@ def getInteractionData(cui_list):
 
 
 def getInteractionGraph(interaction):
+    """Construct a graph from interaction data
+
+    Parameters
+    ----------
+    interaction : 
+        The json response from the NIH API
+
+    Returns
+    -------
+        A graph object conforming to the graph structure described
+        in the document and `graph.py` 
+    """
     graph = Graph()
+    # access fullInteractionType nested in fullInteractionTypeGroup
     for i in interaction["fullInteractionTypeGroup"]:
         for j in i["fullInteractionType"]:
             graph.add_edge(
@@ -244,7 +360,7 @@ def getInteractionGraph(interaction):
                 j["minConcept"][0]["name"],
                 j["minConcept"][1]["rxcui"],
                 j["minConcept"][1]["name"],
-                i["sourceName"],
+                i["sourceName"], # source of info is in outer group
                 j["interactionPair"][0]["severity"],
                 j["interactionPair"][0]["description"],
             )
@@ -252,76 +368,116 @@ def getInteractionGraph(interaction):
 
 
 def buildGraphVisualization(graph):
-    # Function to create a NetworkX graph from your graph structure
+    """Build a visualization of the graph using plotly
 
-    def queue(a, b, qty):
-        """either x0 and x1 or y0 and y1, qty of points to create"""
-        q = deque()
-        q.append((0, qty - 1))  # indexing starts at 0
-        pts = [0] * qty
-        pts[0] = a
-        pts[-1] = b  # x0 is the first value, x1 is the last
-        while len(q) != 0:
-            left, right = q.popleft()  # remove working segment from queue
-            center = (left + right + 1) // 2  # creates index values for pts
-            pts[center] = (pts[left] + pts[right]) / 2
-            if right - left > 2:  # stop when qty met
-                q.append((left, center))
-                q.append((center, right))
-        return pts
+    Parameters
+    ----------
+    graph : 
+        The graph constructed by the getInteractionGraph() function
 
-    def collector(x0, x1, y0, y1, qty, ht):
-        """line segment end points, how many midpoints, hovertext"""
+    Returns
+    -------
+        A plotly graph object
+    """
+    def point_generator(x0, x1, y0, y1, qty, ht):
+        """Helper function to generate multiple midpoints for edges
+
+        This allows users to hover over any given points on 
+        the edges and see the hovertext
+
+        Adapted from: https://stackoverflow.com/questions/74607000
+        (Used np.linspace to increase performance of computing points and added comments)
+
+        Parameters
+        ----------
+        x0 :
+            Starting point on the x coordinate
+        x1 :
+            Ending point on the x coordinate
+        y0 :
+            Starting point on the y coordinate
+        y1 :
+            Ending point on the y coordinate
+        qty :
+            Number of points to generate
+        ht :
+            Hover text to display (duplicated `qty` times)
+
+        Returns
+        -------
+            A tuple of lists
+            ptx : points for x-axis
+            pty : points for y-axis
+            pth : duplicated hover text
+        """
+        # generate duplicate hovertext
         pth = [ht] * qty
-        ptx = queue(x0, x1, qty + 2)  # add 2 because the origin will be in the list
-        pty = queue(y0, y1, qty + 2)
-        ptx.pop(0)
-        ptx.pop()  # pop first and last (the nodes)
-        pty.pop(0)
-        pty.pop()  # pop first and last (the nodes)
+        # calculate all middle points + start and end (x-axis)
+        ptx = np.linspace(x0, x1, qty + 2).tolist() 
+        # calculate all middle points + start and end (y-axis)
+        pty = np.linspace(y0, y1, qty + 2).tolist()
+        ptx.pop(0); ptx.pop() # pop first and last for x (to avoid the origin)
+        pty.pop(0); pty.pop() # pop first and last for y (to avoid the origin)
         return ptx, pty, pth
 
     def nxGraph(drug_graph):
+        """helper function to convert the given drug graph to a networkx graph
+
+        Parameters
+        ----------
+        drug_graph : 
+            The graph constructed by the getInteractionGraph() function
+
+        Returns
+        -------
+            A networkx graph object
+        """
         G = nx.Graph()
+        # loop over vertices in the graph as vertex
         for vertex in drug_graph.vert_list.values():
+            # add node to networkx graph
             G.add_node(vertex.id)
             for neighbor in vertex.connectedTo:
+                # add edge to networkx graph
+                # can use kwargs to add additional info to the graph
                 G.add_edge(
                     vertex.id,
                     neighbor.id,
-                    severity=vertex.connectedTo[neighbor].severity,
-                    additional_info=vertex.connectedTo[neighbor].additional_info,
+                    severity=vertex.connectedTo[neighbor].severity, # include severity info
+                    additional_info=vertex.connectedTo[neighbor].additional_info, # inclide additional info
                 )
         return G
 
-    # Convert graph to a NetworkX graph
+    # convert to networkx graph
     G = nxGraph(graph)
 
-    # Generate positions for each node using NetworkX
+    # generate positions for each node for visualization
     pos = nx.spring_layout(G)
 
-    # Extracting edge coordinates from the positions
-    edge_x = []
-    edge_y = []
+    # extract edge coordinates from the positions
+    edge_x, edge_y = [], []
     m2x, m2y, m2t = [], [], []
     for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])  # Add None to create a break between lines
+        x0, y0 = pos[edge[0]] # get x coord
+        x1, y1 = pos[edge[1]] # get y coord
+        edge_x.extend([x0, x1, None])  #  None is for a break between lines
         edge_y.extend([y0, y1, None])
-
+        
+        # edge hovertext definition
         info = (
             f"RxCUI: {edge[0]}, {edge[1]}<br>"
             + f"Severity: {G.get_edge_data(edge[0], edge[1])['severity']}<br>"
             + f"Rationale: {G.get_edge_data(edge[0], edge[1])['additional_info']}"
         )
 
-        ptsx, ptsy, ptsh = collector(x0, x1, y0, y1, 15, info)
+        # generate multiple midpoints (15) for edges
+        # (allows users to hover over any given point on edge to see hovertext)
+        ptsx, ptsy, ptsh = point_generator(x0, x1, y0, y1, 15, info)
         m2x.extend(ptsx)
         m2y.extend(ptsy)
         m2t.extend(ptsh)
 
-    # Create a trace for edges
+    # create visible line for edges
     edge_trace = go.Scatter(
         x=edge_x,
         y=edge_y,
@@ -330,6 +486,7 @@ def buildGraphVisualization(graph):
         mode="lines",
     )
 
+    # create invisible lines for edges for hovertext
     mnode_trace = go.Scatter(
         x=m2x,
         y=m2y,
@@ -340,17 +497,15 @@ def buildGraphVisualization(graph):
         marker=go.scatter.Marker(opacity=0),
     )
 
-    # Extracting node coordinates and labels
-    node_x = []
-    node_y = []
-    node_text = []
+    # extract node coordinates and labels
+    node_x, node_y, node_text = [], [], [] # init lists for coords and text
     for node in G.nodes():
         x, y = pos[node]
         node_x.append(x)
         node_y.append(y)
         node_text.append(node)
 
-    # Create a trace for nodes
+    # scatter for nodes
     node_trace = go.Scatter(
         x=node_x,
         y=node_y,
@@ -359,10 +514,9 @@ def buildGraphVisualization(graph):
         text=node_text,
         marker=dict(showscale=False, color="blue", size=10, line_width=2),
     )
-
-    n_adjacencies = []
-    n_text = []
-
+    
+    # node hovertext definition
+    n_adjacencies, n_text = [], []
     for node, adjacencies in enumerate(G.adjacency()):
         print(adjacencies[0])
         print(adjacencies[1])
@@ -374,6 +528,7 @@ def buildGraphVisualization(graph):
             + f"# of average shortest path # to other vertices: {str(random_walk(graph.vert_list.keys(), graph, adjacencies[0]))}"
         )
 
+    # pass hovertext and color into the node trace
     node_trace.marker.color = n_adjacencies
     node_trace.text = n_text
 
@@ -398,6 +553,7 @@ def buildGraphVisualization(graph):
         ),
     )
 
+    # update fig layout to allow click and hover callbacks + minor styling
     fig.add_trace(edge_trace)
     fig.update_layout(clickmode="event+select")
     fig.update_layout(height=700)

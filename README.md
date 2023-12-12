@@ -1,10 +1,12 @@
 # SI507-Final
 
 This repository contains code files for SI 507 final project.
-
 This project aims to represent drug-drug interaction as graphs.
 
-The web application can be accessed here: [Heroku web app](https://mjpan-fp507-2d393f67a958.herokuapp.com/index)
+Project report can be found here: [Google docs](https://docs.google.com/document/d/1IB7vYoPBKedIA_RoMFylsc4cCSRefzhItVSUIK1HF5c/edit?usp=sharing)\
+The web application can be accessed here: [Heroku web app](https://mjpan-fp507-2d393f67a958.herokuapp.com/index) (see the demo link below for instructions on how to use the web app). 
+
+## How to run the code
 
 To run the code, first install the dependencies by running the following command in the terminal:
 
@@ -24,7 +26,8 @@ This command starts a server at localhost (usually with port 8000). The web appl
 
 The Django secret key as well as the FDA API secret key is provided in the .env file in the zip file submitted to canvas. Make sure that you are in the directory of the project when running the above commands with the virtual environment with django installation activated.
 
-The file structure of the repository is listed below:
+## Repository file structure
+
 | File  | is directory?  | description |
 |:-----:  |:-----:  |:-----:  |
 | `.github/workflow` | ✅ | Workflow file for github action (for automatic deployment to heroku) |
@@ -37,7 +40,6 @@ The file structure of the repository is listed below:
 | `runtime.txt` | ❌| Heroku version python configuration |
 | `try.ipynb` | ❌| Contains code snippets for experimentation with graph data strucutre and API access  |
 
-
 ## How to interact with the web application
 
- Users can enter a series of comma-separated drug names in an input box and select a specific type of aggregated drug adverse event data they would like to see in a drop-down menu. After submitting the input, the program outputs an interaction graph visualization. Users can hover over a vertex to see the name of the drug, the number of connections, and the estimated average shortest path from the vertex to other vertices. Users can also hover over an edge to see the drug interaction information. After a graph has been successfully generated, users can click on a graph vertex to inspect the specific type of adverse event data associated with the drug. The available options are: patient sex distribution, age of onset, reporting nation, and types of adverse events. These options are visualized using bar graphs or choropleth mapping. The screenshot below shows the interface of the application. 
+[1-minute demo](https://drive.google.com/file/d/1OWcb8oovu2z5seZLCm__oaMao2jOr3b7/view?usp=sharing)
