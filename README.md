@@ -38,7 +38,8 @@ The Django secret key as well as the FDA API secret key is provided in the .env 
 | `manage.py`|❌ | Django configuration file |
 | `requirements.txt` | ❌| Required python package |
 | `runtime.txt` | ❌| Heroku version python configuration |
-| `try.ipynb` | ❌| Contains code snippets for experimentation with graph data strucutre and API access  |
+| `graph.json` | ❌ | The json representation of graph data structure used in this project |
+
 
 ## How to interact with the web application
 
