@@ -1,7 +1,10 @@
 # SI507-Final
 
 This repository contains code files for SI 507 final project (UMich School of Information).\
-This project aims to represent drug-drug interaction as graphs.
+This project aims to:
+1. Experiment with representing drug-drug interaction as graphs
+2. Experiment with the Django web framework, and how it can be used in combination with plotly and dash visualization frameworks to offer interactive drug-drug interaction and drug information visualization. 
+3. Experiment with CI & CD using GitHub Actions. Each commit from the local machine triggers a build on GitHub, which triggers a deployment workflow on Heroku, saving time for manual deployment. 
 
 Project report can be found here: [Google docs](https://docs.google.com/document/d/1IB7vYoPBKedIA_RoMFylsc4cCSRefzhItVSUIK1HF5c/edit?usp=sharing)
 
