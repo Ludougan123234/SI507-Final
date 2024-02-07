@@ -1,10 +1,14 @@
 # SI507-Final
 
-This repository contains code files for SI 507 final project.
+This repository contains code files for SI 507 final project (UMich School of Information).\
 This project aims to represent drug-drug interaction as graphs.
 
-Project report can be found here: [Google docs](https://docs.google.com/document/d/1IB7vYoPBKedIA_RoMFylsc4cCSRefzhItVSUIK1HF5c/edit?usp=sharing)\
-The web application can be accessed here: [Heroku web app](https://mjpan-fp507-2d393f67a958.herokuapp.com/index) (see the demo link below for instructions on how to use the web app). 
+Project report can be found here: [Google docs](https://docs.google.com/document/d/1IB7vYoPBKedIA_RoMFylsc4cCSRefzhItVSUIK1HF5c/edit?usp=sharing)
+
+⚠️⚠️⚠️⚠️ \
+This project is originally deployed as a [Heroku web app](https://mjpan-fp507-2d393f67a958.herokuapp.com/index) for interactivity. However, due to platform cost concerns and the deprecation of the [NIH drug-drug interaction API](https://blog.drugbank.com/nih-discontinues-their-drug-interaction-api/), this application is taken offline and is no longer available.
+If you wish to see the app in action, please refer to the [one-minute demo video](https://drive.google.com/file/d/1OWcb8oovu2z5seZLCm__oaMao2jOr3b7/view?usp=sharing).\
+⚠️⚠️⚠️⚠️
 
 ## How to run the code
 
