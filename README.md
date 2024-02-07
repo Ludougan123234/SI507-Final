@@ -51,3 +51,7 @@ The Django secret key as well as the FDA API secret key is provided in the .env 
 ## How to interact with the web application
 
 [1-minute demo](https://drive.google.com/file/d/1OWcb8oovu2z5seZLCm__oaMao2jOr3b7/view?usp=sharing)
+
+## Reflection and further improvements
+1. Better user interface design for the visualizations
+2. Use Postgre SQL to implement caching of data to ensure file and data persistence on cloud platforms with ephemeral file systems.
