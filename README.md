@@ -31,7 +31,7 @@ python manage.py runserver
 
 This command starts a server at localhost (usually with port 8000). The web application can be accessed by going to the url: `localhost:[PORT]/index`. (the port number should be the same as the one shown in the terminal on line `Starting development server at http://127.0.0.1:[PORT]`)
 
-The Django secret key as well as the FDA API secret key is provided in the .env file in the zip file submitted to canvas. Make sure that you are in the directory of the project when running the above commands with the virtual environment with django installation activated.
+The Django secret key as well as the FDA API secret key is provided in the .env file in the zip file submitted to canvas (but not on here). Make sure that you are in the directory of the project when running the above commands with the virtual environment with django installation activated.
 
 ## Repository file structure
 
